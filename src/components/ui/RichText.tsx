@@ -77,10 +77,15 @@ function TermLink({
   display?: string
   stopPropagation?: boolean
 }) {
-  const { navigateToPath } = useNavigation()
+  const { navigateToPath, state } = useNavigation()
   const path = findTermPath(term)
 
   if (!path) {
+    return <span>{display || term}</span>
+  }
+
+  // 如果术语指向的页面就是当前页面，就不要标紫，避免自己跳到自己
+  if (arraysEqual(path, state.path)) {
     return <span>{display || term}</span>
   }
 
@@ -105,6 +110,11 @@ function TermLink({
       {display || term}
     </span>
   )
+}
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) return false
+  return a.every((value, index) => value === b[index])
 }
 
 function AutoLinkText({ text, stopPropagation }: { text: string; stopPropagation?: boolean }) {
