@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Deployment / temp artifacts
+dist.zip
+validate-*.ts
+
