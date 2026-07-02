@@ -16,16 +16,7 @@ interface TermMatch {
   path: string[]
 }
 
-/**
- * 支持 [[术语]] 或 [[术语|显示文本]] 语法的富文本组件。
- * 同时会自动把 plain text 中的已知术语变成可点击链接。
- *
- * 例如：
- * - "[[GPU]] 是 AI 的算力核心" → GPU 是可点击链接
- * - "GPU 负责并行计算" → GPU 自动变成可点击链接
- */
 export function RichText({ text, className = '', stopPropagation = false, autoLink = true }: RichTextProps) {
-  // 第一步：解析显式 [[...]] 标记
   const explicitParts: Array<{ type: 'text' | 'term'; content: string; display?: string }> = []
   const regex = /\[\[(.*?)(?:\|(.*?))?\]\]/g
   let lastIndex = 0
@@ -84,9 +75,8 @@ function TermLink({
     return <span>{display || term}</span>
   }
 
-  // 如果术语指向的页面就是当前页面，就不要标紫，避免自己跳到自己
   if (arraysEqual(path, state.path)) {
-    return <span>{display || term}</span>
+    return <span className="text-slate-300">{display || term}</span>
   }
 
   return (
@@ -104,7 +94,7 @@ function TermLink({
           navigateToPath(path)
         }
       }}
-      className="inline text-violet-600 hover:text-violet-800 underline underline-offset-2 font-medium cursor-pointer"
+      className="inline text-cyan-400 hover:text-cyan-300 underline underline-offset-2 font-medium cursor-pointer"
       title={`查看 ${term}`}
     >
       {display || term}
@@ -160,13 +150,11 @@ function findTermMatches(text: string): TermMatch[] {
     }
   }
 
-  // 按起始位置升序，相同起始位置按长度降序（优先匹配更长的术语）
   allMatches.sort((a, b) => {
     if (a.start !== b.start) return a.start - b.start
     return b.end - b.start - (a.end - a.start)
   })
 
-  // 贪心选择不重叠的匹配
   const selected: TermMatch[] = []
   let lastEnd = -1
 
@@ -183,7 +171,6 @@ function findTermMatches(text: string): TermMatch[] {
 function findAllOccurrences(text: string, term: string): Array<[number, number]> {
   const results: Array<[number, number]> = []
 
-  // 中文或混合术语：直接 substring 搜索
   if (/[一-龥]/.test(term)) {
     let index = text.indexOf(term)
     while (index !== -1) {
@@ -193,7 +180,6 @@ function findAllOccurrences(text: string, term: string): Array<[number, number]>
     return results
   }
 
-  // 纯英文/数字/符号术语：用单词边界
   const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const regex = new RegExp(`\\b${escaped}\\b`, 'g')
   let m

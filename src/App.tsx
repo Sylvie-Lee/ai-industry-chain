@@ -8,13 +8,13 @@ function AppContent() {
   const { state } = useNavigation()
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-[#0B0F19] tech-grid animate-grid-drift flex flex-col text-slate-200 overflow-hidden">
       <Header />
-      <main className="flex-1">
+      <main className="flex-1 relative overflow-hidden">
         <IndustryChainView />
       </main>
       <Footer />
-      {state.path.length > 0 && <DrillDownPanel path={state.path} />}
+      <DrillDownPanel path={state.path} />
     </div>
   )
 }

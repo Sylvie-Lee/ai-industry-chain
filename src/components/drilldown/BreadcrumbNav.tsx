@@ -23,22 +23,22 @@ export function BreadcrumbNav({ path }: BreadcrumbNavProps) {
   })
 
   return (
-    <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
+    <nav className="flex items-center gap-2 text-sm text-slate-400">
       <button
         onClick={goToOverview}
-        className="hover:text-violet-600 transition-colors"
+        className="hover:text-cyan-400 transition-colors"
       >
         首页
       </button>
       {labels.map((item) => (
         <span key={item.id} className="flex items-center gap-2">
-          <span className="text-gray-300">/</span>
+          <span className="text-slate-600">/</span>
           {item.isLast ? (
-            <span className="font-medium text-gray-900">{item.label}</span>
+            <span className="font-medium text-slate-100 truncate max-w-[180px]">{item.label}</span>
           ) : (
             <button
               onClick={() => navigateToPath(item.path)}
-              className="hover:text-violet-600 transition-colors"
+              className="hover:text-cyan-400 transition-colors truncate max-w-[120px]"
             >
               {item.label}
             </button>

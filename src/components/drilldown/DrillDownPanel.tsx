@@ -1,156 +1,142 @@
-import { useNavigation } from '../../context/NavigationContext'
-import { resolvePath, findNodeById } from '../../utils/helpers'
+import { useEffect, useState } from 'react'
+import { resolvePath } from '../../utils/helpers'
 import { timelineEvents } from '../../data/timelines'
 import { industryChain } from '../../data/industryChain'
+import { useNavigation } from '../../context/NavigationContext'
 import { BreadcrumbNav } from './BreadcrumbNav'
 import { DetailCard } from './DetailCard'
 import { TimelineView } from './TimelineView'
-import { RichText } from '../ui/RichText'
-import { AnalogyIllustration } from '../illustrations/AnalogyIllustration'
-import type { TimelineEvent, ChainNode, ChainSection } from '../../types'
+import type { TimelineEvent, ChainNode } from '../../types'
 
 interface DrillDownPanelProps {
   path: string[]
 }
 
 export function DrillDownPanel({ path }: DrillDownPanelProps) {
-  const { navigateToPath } = useNavigation()
-  const { section, node } = resolvePath(path)
+  const { navigateToPath, goBack, goToOverview } = useNavigation()
+  const isOpen = path.length >= 2
+  const { node } = resolvePath(path)
+  const [isExpanded, setIsExpanded] = useState(false)
 
-  // 只选了 section，没选具体节点：渲染 section 概览
-  if (section && !node) {
-    return (
-      <SectionOverview section={section} path={path} />
-    )
-  }
+  // Reset expanded state when drawer closes
+  useEffect(() => {
+    if (!isOpen) setIsExpanded(false)
+  }, [isOpen])
 
-  if (!node) {
-    return (
-      <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">未找到该节点</p>
-          <button
-            onClick={() => navigateToPath([])}
-            className="mt-4 text-violet-600 font-medium"
-          >
-            返回首页
-          </button>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    if (!isOpen) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') goBack()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [isOpen, goBack])
 
-  // 找到与该节点相关的时间线事件
-  const relatedEvents = timelineEvents.filter(
-    (event) => event.relatedNodes.includes(node.id) || node.detailView.timelineEventIds?.includes(event.id)
-  )
+  const relatedEvents = node
+    ? timelineEvents.filter(
+        (event) => event.relatedNodes.includes(node.id) || node.detailView.timelineEventIds?.includes(event.id)
+      )
+    : []
 
-  // 去重并按日期排序
   const uniqueEvents = Array.from(
     new Map(relatedEvents.map((e) => [e.id, e])).values()
   ).sort((a, b) => a.date.localeCompare(b.date))
 
   const handleEventClick = (event: TimelineEvent) => {
-    // 优先跳到与当前节点不同的关联节点，否则保持当前
-    const targetId = event.relatedNodes.find((id) => id !== node.id) || event.relatedNodes[0]
+    const targetId = event.relatedNodes.find((id) => id !== node?.id) || event.relatedNodes[0]
     if (!targetId) return
-    const target = findNodeById(targetId)
-    if (!target) return
-    // 构建路径：找到 target 在产业链中的位置
     const targetPath = buildPathToNode(targetId)
-    if (targetPath) {
-      navigateToPath(targetPath)
-    }
+    if (targetPath) navigateToPath(targetPath)
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
-      <PanelHeader path={path} />
+    <>
+      {/* Backdrop - light tint, does not block left-side interaction */}
+      <div
+        className={`fixed inset-0 z-40 bg-black/20 transition-opacity duration-500 ease-out pointer-events-none
+          ${isOpen ? 'opacity-100' : 'opacity-0'}`}
+      />
 
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-6">
-          <DetailCard node={node} />
+      {/* Drawer */}
+      <div
+        className={`fixed inset-y-0 right-0 z-50 bg-slate-900/98 backdrop-blur-xl
+          border-l border-slate-700/50 shadow-[-20px_0_80px_rgba(0,0,0,0.7)]
+          flex flex-col transform transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'}
+          ${isExpanded ? 'w-full rounded-l-none' : 'w-[min(420px,calc(100%-1rem))] rounded-l-2xl'}`}
+      >
+        {/* Subtle left edge glow */}
+        <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-slate-500/20 to-transparent" />
 
-          {uniqueEvents.length > 0 && (
-            <TimelineView events={uniqueEvents} onEventClick={handleEventClick} />
-          )}
+        <PanelHeader path={path} isExpanded={isExpanded} onToggleExpand={() => setIsExpanded((v) => !v)} />
 
-          {node.children && node.children.length > 0 && (
-            <ChildNodes node={node} />
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {!node ? (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6">
+              <p className="text-slate-400">未找到该节点</p>
+              <button
+                onClick={goToOverview}
+                className="mt-4 px-4 py-2 rounded-lg bg-violet-500/20 text-violet-300 border border-violet-500/40 hover:bg-violet-500/30 transition-colors"
+              >
+                返回首页
+              </button>
+            </div>
+          ) : (
+            <div
+              className={`px-5 sm:px-6 py-6 space-y-6 transition-all duration-500 ease-out
+                ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+            >
+              <DetailCard node={node} />
+
+              {uniqueEvents.length > 0 && (
+                <TimelineView events={uniqueEvents} onEventClick={handleEventClick} />
+              )}
+
+              {node.children && node.children.length > 0 && (
+                <ChildNodes node={node} />
+              )}
+            </div>
           )}
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
-function PanelHeader({ path }: { path: string[] }) {
+function PanelHeader({ path, isExpanded, onToggleExpand }: { path: string[]; isExpanded: boolean; onToggleExpand: () => void }) {
   const { goBack } = useNavigation()
   return (
-    <div className="bg-white border-b border-gray-100 sticky top-0 z-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+    <div className="flex-none border-b border-slate-700/50 bg-slate-900/80 backdrop-blur-md">
+      <div className="px-5 sm:px-6 py-4">
         <div className="flex items-center gap-3">
           <button
             onClick={goBack}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            className="p-2 hover:bg-slate-700/50 rounded-full transition-colors text-slate-400 hover:text-white"
             aria-label="返回"
           >
-            <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <BreadcrumbNav path={path} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SectionOverview({ section, path }: { section: ChainSection; path: string[] }) {
-  const { navigateToNode } = useNavigation()
-
-  return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col">
-      <PanelHeader path={path} />
-
-      <div className="flex-1 overflow-y-auto custom-scrollbar">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6">
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 shadow-sm">
-            <div className="flex items-center gap-4 mb-4">
-              <div className={`w-4 h-4 rounded-full ${section.colorTheme}`} />
-              <h1 className="text-3xl font-bold text-gray-900">{section.title}</h1>
-            </div>
-            <p className="text-gray-600 text-lg">{section.subtitle}</p>
+          <div className="flex-1 min-w-0">
+            <BreadcrumbNav path={path} />
           </div>
-
-          <div className="mt-6 bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-gray-900 mb-4">该环节包含的节点</h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {section.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  onClick={() => navigateToNode(node.id)}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      navigateToNode(node.id)
-                    }
-                  }}
-                  className="text-left bg-gray-50 hover:bg-violet-50 rounded-xl p-4 transition-colors group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <AnalogyIllustration analogy={node.analogy} size="sm" />
-                    <div>
-                      <div className="font-semibold text-gray-900 group-hover:text-violet-700">{node.name}</div>
-                      <RichText text={node.shortDescription} className="text-sm text-gray-600 line-clamp-2" stopPropagation />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <button
+            onClick={onToggleExpand}
+            className="p-2 hover:bg-slate-700/50 rounded-full transition-colors text-slate-400 hover:text-white"
+            aria-label={isExpanded ? '退出全屏' : '全屏'}
+            title={isExpanded ? '退出全屏' : '全屏'}
+          >
+            {isExpanded ? (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9V4.5M9 9H4.5M9 9L3.75 3.75M15 9h4.5M15 9V4.5M15 9l5.25-5.25M9 15H4.5M9 15v4.5M9 15l-5.25 5.25M15 15v4.5M15 15h4.5M15 15l5.25 5.25" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.75 3.75v4.5M3.75 3.75h4.5M3.75 3.75l5.25 5.25m11.25-5.25v4.5m0-4.5h-4.5m5.25 0l-5.25 5.25M3.75 20.25v-4.5m0 4.5h4.5m-4.5 0l5.25-5.25m11.25 5.25v-4.5m0 4.5h-4.5m5.25 0l-5.25-5.25" />
+              </svg>
+            )}
+          </button>
         </div>
       </div>
     </div>
@@ -160,31 +146,18 @@ function SectionOverview({ section, path }: { section: ChainSection; path: strin
 function ChildNodes({ node }: { node: ChainNode }) {
   const { navigateToNode } = useNavigation()
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-      <h3 className="text-lg font-bold text-gray-900 mb-4">继续拆解</h3>
-      <div className="grid sm:grid-cols-2 gap-4">
+    <div className="bg-slate-800/50 rounded-2xl border border-slate-700/50 p-5">
+      <h3 className="text-lg font-bold font-heading text-white mb-4">继续拆解</h3>
+      <div className="grid gap-3">
         {node.children!.map((child) => (
-          <div
+          <button
             key={child.id}
             onClick={() => navigateToNode(child.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                navigateToNode(child.id)
-              }
-            }}
-            className="text-left bg-gray-50 hover:bg-violet-50 rounded-xl p-4 transition-colors group cursor-pointer"
+            className="text-left bg-slate-700/30 hover:bg-slate-700/60 rounded-xl p-4 transition-colors group border border-slate-600/30 hover:border-slate-500/50"
           >
-            <div className="flex items-center gap-3">
-              <AnalogyIllustration analogy={child.analogy} size="sm" />
-              <div>
-                <div className="font-semibold text-gray-900 group-hover:text-violet-700">{child.name}</div>
-                <RichText text={child.shortDescription} className="text-sm text-gray-600 line-clamp-2" stopPropagation />
-              </div>
-            </div>
-          </div>
+            <div className="font-semibold text-slate-200 group-hover:text-white">{child.name}</div>
+            <p className="text-sm text-slate-400 line-clamp-2 mt-1">{child.shortDescription}</p>
+          </button>
         ))}
       </div>
     </div>

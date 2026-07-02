@@ -1,22 +1,44 @@
-import { industryChain } from '../../data/industryChain'
-import { ChainSection } from './ChainSection'
+import { useNavigation } from '../../context/NavigationContext'
+import { findSectionById } from '../../utils/helpers'
+import { ChainCanvas } from './ChainCanvas'
+import { OverviewAxis } from './OverviewAxis'
+import { SectionTimelineView } from './SectionTimelineView'
 
 export function IndustryChainView() {
-  return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-      <div className="text-center mb-10">
-        <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-3">AI 产业链互动地图</h1>
-        <p className="text-gray-600 max-w-2xl mx-auto">
-          从上游的“食材与厨房”，到中游的“大脑与菜谱”，再到下游的“菜单与招牌菜”。
-          点击任意卡片，层层拆解，看懂 AI 是怎么端到端运转的。
-        </p>
-      </div>
+  const { state } = useNavigation()
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        {industryChain.sections.map((section) => (
-          <ChainSection key={section.id} section={section} />
-        ))}
+  // Empty path -> overview of all sections (elastic canvas)
+  if (state.path.length === 0) {
+    return (
+      <ChainCanvas elastic initialScale={1}>
+        <div className="flex flex-col items-center justify-center min-w-max h-full py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-black font-heading text-white mb-4 tracking-tight">
+              AI 产业链互动地图
+            </h1>
+            <p className="text-lg text-slate-400 max-w-2xl mx-auto font-body">
+              从上游的“食材与厨房”，到中游的“大脑与菜谱”，再到下游的“菜单与招牌菜”。
+              滑动探索，点击任意环节查看时间轴与深度解析。
+            </p>
+          </div>
+          <OverviewAxis />
+        </div>
+      </ChainCanvas>
+    )
+  }
+
+  // Single segment path -> section timeline view (native horizontal scroll)
+  const section = findSectionById(state.path[0])
+  if (section) {
+    return <SectionTimelineView section={section} />
+  }
+
+  // Fallback
+  return (
+    <ChainCanvas elastic>
+      <div className="text-center">
+        <p className="text-slate-400">未找到对应分类</p>
       </div>
-    </div>
+    </ChainCanvas>
   )
 }
