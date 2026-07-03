@@ -63,7 +63,7 @@ export function DrillDownPanel({ path }: DrillDownPanelProps) {
           border-l border-slate-700/50 shadow-[-20px_0_80px_rgba(0,0,0,0.7)]
           flex flex-col transform transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}
-          ${isExpanded ? 'w-full rounded-l-none' : 'w-[min(420px,calc(100%-1rem))] rounded-l-2xl'}`}
+          ${isExpanded ? 'w-full rounded-l-none' : 'w-[40%] min-w-[320px] max-w-[720px] rounded-l-2xl'}`}
       >
         {/* Subtle left edge glow */}
         <div className="absolute inset-y-0 left-0 w-px bg-gradient-to-b from-transparent via-slate-500/20 to-transparent" />

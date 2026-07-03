@@ -47,10 +47,17 @@ export function AnalogyIllustration({ analogy, size = 'md', className = '' }: An
   const SVGComponent = svgMap[analogy.illustrationType] || LibrarySVG
   return (
     <div
-      className={`${sizeMap[size]} ${analogy.colorTheme} flex items-center justify-center animate-float p-2 ${className}`}
+      className={`${sizeMap[size]} ${analogy.colorTheme} flex flex-col items-center justify-center animate-float p-2 ${className}`}
       aria-label={analogy.title}
     >
-      <SVGComponent className="w-full h-full" />
+      <div className="flex-1 flex items-center justify-center w-full min-h-0">
+        <SVGComponent className="w-full h-full" />
+      </div>
+      {size !== 'sm' && (
+        <span className="text-[10px] text-center leading-tight mt-1 opacity-90 line-clamp-2 px-1 shrink-0">
+          {analogy.title}
+        </span>
+      )}
     </div>
   )
 }

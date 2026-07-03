@@ -98,17 +98,17 @@ export function TimelineAxis({ title, nodes, color, sectionId, parentNode }: Tim
       <div className="relative">
         {/* Timeline track with glow */}
         <div className="absolute top-[68px] left-8 right-8 h-0.5">
-          <div className={`absolute inset-0 bg-gradient-to-r ${getGradient(color)} opacity-50 rounded-full`} />
+          <div className={`absolute inset-0 bg-gradient-to-r ${getGradient(color)} opacity-30 rounded-full`} />
           <div
             className={`absolute inset-0 bg-gradient-to-r ${getGradient(color)} rounded-full animate-flow-pulse`}
-            style={{ filter: `blur(3px)`, opacity: 0.35 }}
+            style={{ filter: `blur(2px)`, opacity: 0.2 }}
           />
         </div>
 
         {/* Scrollable container - min-w-full + justify-center to center short lanes */}
         <div
           ref={scrollRef}
-          className="overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-6 pt-6"
+          className="overflow-x-auto hide-scrollbar snap-x snap-proximity pb-6 pt-6"
         >
           <div className="flex items-end gap-8 px-12 min-w-full justify-center">
             {nodes.map((node, index) => (
